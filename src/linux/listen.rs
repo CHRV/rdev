@@ -1,6 +1,6 @@
 extern crate libc;
 extern crate x11;
-use crate::linux::common::{convert, FALSE, KEYBOARD};
+use crate::linux::common::{FALSE, KEYBOARD, convert};
 use crate::linux::keyboard::Keyboard;
 use crate::rdev::{Event, ListenError};
 use std::convert::TryInto;

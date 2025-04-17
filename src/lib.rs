@@ -18,9 +18,11 @@
 //!
 //! fn callback(event: Event) {
 //!     println!("My callback {:?}", event);
-//!     match event.name {
+//!     if let Some(unicode) = event.unicode {
+//!
+//!         match(unicode.name ){
 //!         Some(string) => println!("User wrote {:?}", string),
-//!         None => (),
+//!         None => (),}
 //!     }
 //! }
 //! ```
@@ -238,6 +240,9 @@ pub use crate::codes_conv::*;
 pub use keycodes::android::{
     code_from_key as android_keycode_from_key, key_from_code as android_key_from_code,
 };
+pub use keycodes::chrome::{
+    code_from_key as chrome_keycode_from_key, key_from_code as chrome_key_from_code,
+};
 pub use keycodes::linux::{
     code_from_key as linux_keycode_from_key, key_from_code as linux_key_from_code,
 };
@@ -251,9 +256,6 @@ pub use keycodes::windows::{
     code_from_key as win_code_from_key, code_from_key as win_keycode_from_key, get_win_codes,
     get_win_key, key_from_code as win_key_from_keycode, key_from_scancode as win_key_from_scancode,
     scancode_from_key as win_scancode_from_key,
-};
-pub use keycodes::chrome::{
-    code_from_key as chrome_keycode_from_key, key_from_code as chrome_key_from_code,
 };
 
 #[cfg(target_os = "macos")]
@@ -292,9 +294,11 @@ pub use crate::rdev::UnicodeInfo;
 ///
 /// fn callback(event: Event) {
 ///     println!("My callback {:?}", event);
-///     match event.name{
-///         Some(string) => println!("User wrote {:?}", string),
-///         None => ()
+///     if let Some(unicode) = event.unicode{
+///         match unicode.name {
+///             Some(string) => println!("User wrote {:?}", string),
+///             None => ()
+///         }
 ///     }
 /// }
 /// fn main(){

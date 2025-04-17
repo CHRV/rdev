@@ -21,6 +21,7 @@ strum = "0.24.1"
 strum_macros = "0.24"
 widestring = "1.0.2"
 log = "0.4"
+x11rb = { version = "0.13.1", features = ["xinput"] }
 
 [features]
 serialize = ["serde"]
