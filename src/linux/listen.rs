@@ -98,35 +98,37 @@ struct XRecordDatum {
 unsafe extern "C" fn record_callback(
     _null: *mut c_char,
     raw_data: *mut xrecord::XRecordInterceptData,
-) { unsafe {
-    let Some(data) = raw_data.as_ref() else {
-        return;
-    };
+) {
+    unsafe {
+        let Some(data) = raw_data.as_ref() else {
+            return;
+        };
 
-    if data.category != xrecord::XRecordFromServer {
-        return;
-    }
-
-    debug_assert!(data.data_len * 4 >= std::mem::size_of::<XRecordDatum>().try_into().unwrap());
-    // Cast binary data
-    #[allow(clippy::cast_ptr_alignment)]
-    let Some(xdatum) = (data.data as *const XRecordDatum).as_ref() else {
-        return;
-    };
-
-    let code: c_uint = xdatum.code.into();
-    let type_: c_int = xdatum.type_.into();
-    // let state = xdatum.state;
-
-    let x = xdatum.root_x as f64;
-    let y = xdatum.root_y as f64;
-
-    let mut kbd = KEYBOARD.lock().unwrap();
-
-    if let Some(event) = convert(&mut kbd, code, type_, x, y) {
-        if let Some(callback) = &mut *GLOBAL_CALLBACK.lock().unwrap() {
-            callback(event);
+        if data.category != xrecord::XRecordFromServer {
+            return;
         }
+
+        debug_assert!(data.data_len * 4 >= std::mem::size_of::<XRecordDatum>().try_into().unwrap());
+        // Cast binary data
+        #[allow(clippy::cast_ptr_alignment)]
+        let Some(xdatum) = (data.data as *const XRecordDatum).as_ref() else {
+            return;
+        };
+
+        let code: c_uint = xdatum.code.into();
+        let type_: c_int = xdatum.type_.into();
+        // let state = xdatum.state;
+
+        let x = xdatum.root_x as f64;
+        let y = xdatum.root_y as f64;
+
+        let mut kbd = KEYBOARD.lock().unwrap();
+
+        if let Some(event) = convert(&mut kbd, code, type_, x, y) {
+            if let Some(callback) = &mut *GLOBAL_CALLBACK.lock().unwrap() {
+                callback(event);
+            }
+        }
+        xrecord::XRecordFreeData(raw_data);
     }
-    xrecord::XRecordFreeData(raw_data);
-}}
+}

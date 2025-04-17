@@ -1,6 +1,6 @@
 use crate::{
     rdev::{Event, ListenError},
-    windows::common::{convert, get_scan_code, set_key_hook, set_mouse_hook, HookError},
+    windows::common::{HookError, convert, get_scan_code, set_key_hook, set_mouse_hook},
 };
 use std::{os::raw::c_int, ptr::null_mut, time::SystemTime};
 use winapi::{

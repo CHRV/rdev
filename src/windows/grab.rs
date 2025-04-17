@@ -1,6 +1,6 @@
 use crate::{
     rdev::{Event, EventType, GrabError},
-    windows::common::{convert, get_scan_code, HookError, KEYBOARD},
+    windows::common::{HookError, KEYBOARD, convert, get_scan_code},
 };
 use std::{io::Error, ptr::null_mut, sync::Mutex, time::SystemTime};
 use winapi::{
@@ -14,9 +14,9 @@ use winapi::{
         errhandlingapi::GetLastError,
         processthreadsapi::GetCurrentThreadId,
         winuser::{
-            CallNextHookEx, DispatchMessageA, GetMessageA, PostThreadMessageA, SetWindowsHookExA,
-            TranslateMessage, UnhookWindowsHookEx, HC_ACTION, MSG, PKBDLLHOOKSTRUCT,
-            PMOUSEHOOKSTRUCT, WH_KEYBOARD_LL, WH_MOUSE_LL, WM_USER,
+            CallNextHookEx, DispatchMessageA, GetMessageA, HC_ACTION, MSG, PKBDLLHOOKSTRUCT,
+            PMOUSEHOOKSTRUCT, PostThreadMessageA, SetWindowsHookExA, TranslateMessage,
+            UnhookWindowsHookEx, WH_KEYBOARD_LL, WH_MOUSE_LL, WM_USER,
         },
     },
 };

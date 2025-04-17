@@ -1,4 +1,4 @@
-use rdev::{simulate, EventType, Key, SimulateError};
+use rdev::{EventType, Key, SimulateError, simulate};
 use std::{thread, time};
 
 fn send(event_type: &EventType) {
@@ -119,8 +119,8 @@ fn test_simulate_char() {
 #[cfg(target_os = "linux")]
 fn simulate_combination() {
     send(&EventType::KeyPress(Key::ControlLeft));
-    rdev::simulate_char('€', true);
-    rdev::simulate_char('€', false);
+    let _ = rdev::simulate_char('€', true);
+    let _ = rdev::simulate_char('€', false);
     send(&EventType::KeyRelease(Key::ControlLeft));
 }
 
