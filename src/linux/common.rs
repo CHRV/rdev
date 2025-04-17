@@ -4,7 +4,6 @@ use crate::rdev::{Button, Event, EventType, KeyboardState};
 use std::convert::TryInto;
 use std::os::raw::{c_int, c_uchar, c_uint};
 use std::ptr::null;
-use std::sync::LazyLock;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 use x11::xlib;

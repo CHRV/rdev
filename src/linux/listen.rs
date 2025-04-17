@@ -98,7 +98,7 @@ struct XRecordDatum {
 unsafe extern "C" fn record_callback(
     _null: *mut c_char,
     raw_data: *mut xrecord::XRecordInterceptData,
-) {
+) { unsafe {
     let Some(data) = raw_data.as_ref() else {
         return;
     };
@@ -129,4 +129,4 @@ unsafe extern "C" fn record_callback(
         }
     }
     xrecord::XRecordFreeData(raw_data);
-}
+}}

@@ -137,7 +137,7 @@ fn convert_event(code: u32, is_press: bool) -> Event {
         EventType::KeyRelease(key)
     };
 
-    let (unicode, platform_code) = unsafe {
+    let (unicode, platform_code) = {
         if let Some(kbd) = &mut KEYBOARD.lock().unwrap().as_mut() {
             // delete -> \u{7f}
             let unicode_info = kbd.add(&event_type);
