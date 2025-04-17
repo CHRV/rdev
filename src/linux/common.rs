@@ -1,9 +1,11 @@
-use crate::linux::keyboard::Keyboard;
 use crate::keycodes::linux::key_from_code;
+use crate::linux::keyboard::Keyboard;
 use crate::rdev::{Button, Event, EventType, KeyboardState};
 use std::convert::TryInto;
 use std::os::raw::{c_int, c_uchar, c_uint};
 use std::ptr::null;
+use std::sync::LazyLock;
+use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 use x11::xlib;
 
@@ -11,7 +13,10 @@ pub const TRUE: c_int = 1;
 pub const FALSE: c_int = 0;
 
 // A global for the callbacks.
-pub static mut KEYBOARD: Option<Keyboard> = None;
+
+lazy_static::lazy_static! {
+    pub static ref KEYBOARD : Arc<Mutex<Option<Keyboard>>> = Arc::new(Mutex::new(None));
+}
 
 pub fn convert_event(code: c_uchar, type_: c_int, x: f64, y: f64) -> Option<EventType> {
     match type_ {

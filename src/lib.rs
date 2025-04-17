@@ -261,26 +261,26 @@ pub use keycodes::windows::{
 #[cfg(target_os = "macos")]
 pub use crate::keycodes::macos::{code_from_key, key_from_code, virtual_keycodes::*};
 #[cfg(target_os = "macos")]
-use crate::macos::{display_size as _display_size, listen as _listen, simulate as _simulate};
+pub use crate::macos::{Keyboard, VirtualInput, set_is_main_thread};
 #[cfg(target_os = "macos")]
-pub use crate::macos::{set_is_main_thread, Keyboard, VirtualInput};
+use crate::macos::{display_size as _display_size, listen as _listen, simulate as _simulate};
 #[cfg(target_os = "macos")]
 pub use core_graphics::{event::CGEventTapLocation, event_source::CGEventSourceStateID};
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
 pub use crate::keycodes::linux::{code_from_key, key_from_code};
 #[cfg(target_os = "linux")]
-use crate::linux::{display_size as _display_size, listen as _listen, simulate as _simulate};
+pub use crate::linux::{Keyboard, simulate_char, simulate_unicode};
 #[cfg(target_os = "linux")]
-pub use crate::linux::{simulate_char, simulate_unicode, Keyboard};
+use crate::linux::{display_size as _display_size, listen as _listen, simulate as _simulate};
 
 #[cfg(target_os = "windows")]
 pub use crate::keycodes::windows::key_from_scancode;
 #[cfg(target_os = "windows")]
 pub use crate::windows::{
-    display_size as _display_size, get_modifier, listen as _listen, set_modifier,
+    Keyboard, display_size as _display_size, get_modifier, listen as _listen, set_modifier,
     simulate as _simulate, simulate_char, simulate_code, simulate_key_unicode, simulate_unicode,
-    simulate_unistr, vk_to_scancode, Keyboard,
+    simulate_unistr, vk_to_scancode,
 };
 
 pub use crate::rdev::UnicodeInfo;
@@ -311,7 +311,7 @@ pub use crate::rdev::UnicodeInfo;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub fn listen<T>(callback: T) -> Result<(), ListenError>
 where
-    T: FnMut(Event) + 'static,
+    T: FnMut(Event) + 'static + Send,
 {
     _listen(callback)
 }

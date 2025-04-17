@@ -1,15 +1,15 @@
 use crate::rdev::UnicodeInfo;
 // This code is awful. Good luck
-use crate::{key_from_code, Event, EventType, GrabError, Keyboard, KeyboardState};
+use crate::{Event, EventType, GrabError, Keyboard, KeyboardState, key_from_code};
 use log::error;
-use mio::{unix::SourceFd, Events, Interest, Poll, Token};
+use mio::{Events, Interest, Poll, Token, unix::SourceFd};
 use std::{
     mem::zeroed,
     os::raw::c_int,
     ptr,
     sync::{
-        mpsc::{channel, Receiver, Sender},
         Arc, Mutex,
+        mpsc::{Receiver, Sender, channel},
     },
     thread,
     time::{Duration, SystemTime},
@@ -47,7 +47,11 @@ lazy_static::lazy_static! {
 const KEYPRESS_EVENT: i32 = 2;
 // It is ok to use unsafe mut here.
 static mut IS_GRABBING: bool = false;
-static mut GLOBAL_CALLBACK: Option<Box<dyn FnMut(Event) -> Option<Event>>> = None;
+
+lazy_static::lazy_static! {
+    static ref GLOBAL_CALLBACK: Arc<Mutex<Option<Box<dyn FnMut(Event) -> Option<Event> + Send + Sync>>>> = Arc::new(Mutex::new(None));
+}
+
 const GRAB_RECV: Token = Token(0);
 
 impl KeyboardGrabber {
@@ -134,7 +138,7 @@ fn convert_event(code: u32, is_press: bool) -> Event {
     };
 
     let (unicode, platform_code) = unsafe {
-        if let Some(kbd) = &mut KEYBOARD {
+        if let Some(kbd) = &mut KEYBOARD.lock().unwrap().as_mut() {
             // delete -> \u{7f}
             let unicode_info = kbd.add(&event_type);
             if is_control(&unicode_info) {
@@ -191,16 +195,18 @@ fn ungrab_keys_(display: *mut xlib::Display) {
 }
 
 fn start_callback_event_thread(recv: Receiver<GrabEvent>) {
-    thread::spawn(move || loop {
-        if let Ok(data) = recv.recv() {
-            match data {
-                GrabEvent::KeyEvent(event) => unsafe {
-                    if let Some(callback) = &mut GLOBAL_CALLBACK {
-                        callback(event);
+    thread::spawn(move || {
+        loop {
+            if let Ok(data) = recv.recv() {
+                match data {
+                    GrabEvent::KeyEvent(event) => {
+                        if let Some(callback) = &mut GLOBAL_CALLBACK.lock().unwrap().as_mut() {
+                            callback(event);
+                        }
                     }
-                },
-                GrabEvent::Exit => {
-                    break;
+                    GrabEvent::Exit => {
+                        break;
+                    }
                 }
             }
         }
@@ -211,14 +217,9 @@ fn start_grab_service() -> Result<(), GrabError> {
     let (tx, rx) = channel::<GrabEvent>();
     *GRAB_KEY_EVENT_SENDER.lock().unwrap() = Some(tx);
 
-    unsafe {
-        // to-do: is display pointer in keyboard always valid?
-        // KEYBOARD usage is very confusing and error prone.
-        KEYBOARD = Keyboard::new();
-        if KEYBOARD.is_none() {
-            return Err(GrabError::KeyboardError);
-        }
-    }
+    // to-do: is display pointer in keyboard always valid?
+    // KEYBOARD usage is very confusing and error prone.
+    *KEYBOARD.lock().unwrap() = Some(Keyboard::new().ok_or(GrabError::KeyboardError)?);
 
     start_grab_thread();
     start_callback_event_thread(rx);
@@ -367,7 +368,7 @@ pub fn is_grabbed() -> bool {
 
 pub fn start_grab_listen<T>(callback: T) -> Result<(), GrabError>
 where
-    T: FnMut(Event) -> Option<Event> + 'static,
+    T: FnMut(Event) -> Option<Event> + 'static + Send + Sync,
 {
     if is_grabbed() {
         return Ok(());
@@ -375,7 +376,7 @@ where
 
     unsafe {
         IS_GRABBING = true;
-        GLOBAL_CALLBACK = Some(Box::new(callback));
+        *GLOBAL_CALLBACK.lock().unwrap() = Some(Box::new(callback));
     }
 
     start_grab_service()?;

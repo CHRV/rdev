@@ -36,10 +36,10 @@ lazy_static::lazy_static! {
 
 fn main() {
     // This will block.
-    std::env::set_var("KEYBOARD_ONLY", "y");
+    unsafe { std::env::set_var("KEYBOARD_ONLY", "y") };
 
-    let mut keyboard = KEYBOARD.lock().unwrap();
     let func = move |evt: Event| {
+        let mut keyboard = KEYBOARD.lock().unwrap();
         let (_key, _down) = match evt.event_type {
             KeyPress(k) => {
                 if MUTEX_SPECIAL_KEYS.lock().unwrap().contains_key(&k) {

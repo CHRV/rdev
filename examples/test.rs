@@ -1,14 +1,14 @@
 #[cfg(target_os = "linux")]
 use core::time;
-#[cfg(target_os = "linux")]
-use rdev::{key_from_code, linux_keycode_from_key, simulate};
 use rdev::{Event, EventType, GrabError, Key as RdevKey};
 #[cfg(target_os = "linux")]
-use std::{collections::HashMap, mem::zeroed, os::raw::c_int, ptr, thread, time::SystemTime};
+use rdev::{key_from_code, linux_keycode_from_key, simulate};
 use std::{
     collections::HashSet,
-    sync::{mpsc::Sender, Arc, Mutex},
+    sync::{Arc, Mutex, mpsc::Sender},
 };
+#[cfg(target_os = "linux")]
+use std::{mem::zeroed, os::raw::c_int, ptr, thread, time::SystemTime};
 #[cfg(target_os = "linux")]
 use strum::IntoEnumIterator;
 #[cfg(target_os = "linux")]
@@ -21,11 +21,10 @@ const MODIFIERS: i32 = 0;
 
 pub static mut IS_GRAB: bool = false;
 
-static mut GLOBAL_CALLBACK: Option<Box<dyn FnMut(Event) -> Option<Event>>> = None;
-
 lazy_static::lazy_static! {
     pub static ref GRABED: Arc<Mutex<HashSet<RdevKey>>> = Arc::new(Mutex::new(HashSet::<RdevKey>::new()));
     pub static ref BROADCAST_CONNECT: Arc<Mutex<Option<Sender<bool>>>> = Arc::new(Mutex::new(None));
+    static ref GLOBAL_CALLBACK: Arc<Mutex<Option<Box<dyn FnMut(Event) -> Option<Event> + Send + Sync>>>> = Arc::new(Mutex::new(None));
 }
 
 #[cfg(target_os = "linux")]
@@ -87,16 +86,14 @@ fn grab_keys(display: *mut Display, grab_window: u64) {
     for key in RdevKey::iter() {
         let event = convert_event(key, true);
 
-        unsafe {
-            if let Some(callback) = &mut GLOBAL_CALLBACK {
-                let grab = callback(event).is_none();
-                let keycode: i32 = linux_keycode_from_key(key).unwrap_or_default() as _;
+        if let Some(callback) = &mut GLOBAL_CALLBACK.lock().unwrap().as_mut() {
+            let grab = callback(event).is_none();
+            let keycode: i32 = linux_keycode_from_key(key).unwrap_or_default() as _;
 
-                if grab && !is_key_grabed(key) {
-                    println!("{:?} {:?}", key, keycode);
-                    grab_key(display, grab_window, keycode);
-                    // GRABED.lock().unwrap().insert(key);
-                }
+            if grab && !is_key_grabed(key) {
+                println!("{:?} {:?}", key, keycode);
+                grab_key(display, grab_window, keycode);
+                // GRABED.lock().unwrap().insert(key);
             }
         }
     }
@@ -147,14 +144,14 @@ fn set_key_hook() {
                         let is_press = x_event.type_ == KEYPRESS_EVENT;
                         let event = convert_event(key, is_press);
 
-                        if let Some(callback) = &mut GLOBAL_CALLBACK {
+                        if let Some(callback) = &mut GLOBAL_CALLBACK.lock().unwrap().as_mut() {
                             let _grab = callback(event).is_none();
                         }
 
                         println!("{:?} {:?}", key, is_press);
                     }
                 });
-                handle.join();
+                let _ = handle.join();
             }
         }
     }
@@ -162,11 +159,10 @@ fn set_key_hook() {
 
 pub fn grab<T>(callback: T) -> Result<(), GrabError>
 where
-    T: FnMut(Event) -> Option<Event> + 'static,
+    T: FnMut(Event) -> Option<Event> + 'static + Send + Sync,
 {
-    unsafe {
-        GLOBAL_CALLBACK = Some(Box::new(callback));
-    }
+    *GLOBAL_CALLBACK.lock().unwrap() = Some(Box::new(callback));
+
     #[cfg(target_os = "linux")]
     set_key_hook();
     Ok(())

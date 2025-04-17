@@ -12,7 +12,8 @@ macro_rules! decl_keycodes {
                 _ => None,
             }
         }
-
+        //TODO: Check why we have unreachable pattern
+        #[allow(unreachable_patterns)]
         pub fn key_from_code(code: &str) -> Key {
             match code {
                 $(
